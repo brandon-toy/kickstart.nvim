@@ -646,8 +646,7 @@ require('lazy').setup({
                   vim.lsp.buf.add_workspace_folder(line)
                 end
               end,
-              cmd = ear
-              :
+              cmd = {
                 'jdtls',
                 '--jvm-arg=-javaagent:' .. require('mason-registry').get_package('jdtls'):get_install_path() .. '/lombok.jar',
               },
