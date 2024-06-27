@@ -91,7 +91,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.opt`
@@ -102,7 +102,7 @@ vim.g.have_nerd_font = false
 vim.opt.number = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
--- vim.opt.relativenumber = true
+vim.opt.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
@@ -164,6 +164,8 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 -- Diagnostic keymaps
 vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, { desc = 'Go to previous [D]iagnostic message' })
 vim.keymap.set('n', ']d', vim.diagnostic.goto_next, { desc = 'Go to next [D]iagnostic message' })
+vim.keymap.set('n', '<C-k>', '<cmd>cnext<CR>zz', { desc = 'Go to next quickfix menu' })
+vim.keymap.set('n', '<C-j>', '<cmd>cprev<CR>zz', { desc = 'Go to prev quickfix menu' })
 vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = 'Show diagnostic [E]rror messages' })
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
@@ -189,6 +191,7 @@ vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left wind
 vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+vim.keymap.set('n', '<leader>pv', ':Explore<Enter>', { desc = 'Open up netrw' })
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
@@ -359,6 +362,10 @@ require('lazy').setup({
         --   },
         -- },
         -- pickers = {}
+        defaults = {
+          path_display = { 'smart' },
+        },
+        shorten_path = true,
         extensions = {
           ['ui-select'] = {
             require('telescope.themes').get_dropdown(),
@@ -614,15 +621,50 @@ require('lazy').setup({
         handlers = {
           function(server_name)
             local server = servers[server_name] or {}
-            -- This handles overriding only values explicitly passed
-            -- by the server configuration above. Useful when disabling
-            -- certain features of an LSP (for example, turning off formatting for tsserver)
-            server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-            require('lspconfig')[server_name].setup(server)
+            require('lspconfig')[server_name].setup {
+              cmd = server.cmd,
+              settings = server.settings,
+              filetypes = server.filetypes,
+              capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {}),
+            }
+          end,
+          jdtls = function()
+            require('lspconfig').jdtls.setup {
+              on_attach = function()
+                local bemol_dir = vim.fs.find({ '.bemol' }, { upward = true, type = 'directory' })[1]
+                local ws_folders_lsp = {}
+                if bemol_dir then
+                  local file = io.open(bemol_dir .. '/ws_root_folders', 'r')
+                  if file then
+                    for line in file:lines() do
+                      table.insert(ws_folders_lsp, line)
+                    end
+                    file:close()
+                  end
+                end
+                for _, line in ipairs(ws_folders_lsp) do
+                  vim.lsp.buf.add_workspace_folder(line)
+                end
+              end,
+              cmd = ear
+              :
+                'jdtls',
+                '--jvm-arg=-javaagent:' .. require('mason-registry').get_package('jdtls'):get_install_path() .. '/lombok.jar',
+              },
+            }
           end,
         },
       }
     end,
+  },
+
+  -- Vim code browse (internal amazon tool)
+
+  {
+    url = 'ssh://git.amazon.com:2222/pkg/Vim-code-browse',
+    branch = 'mainline',
+    dependencies = 'tpope/vim-fugitive',
+    event = 'VeryLazy',
   },
 
   { -- Autoformat
