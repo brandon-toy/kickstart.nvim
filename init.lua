@@ -192,7 +192,8 @@ vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right win
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 vim.keymap.set('n', '<leader>pv', ':Explore<Enter>', { desc = 'Open up netrw' })
-vim.keymap.set({ 'n', 'v' }, '<leader>gb', ':GBrowse<Enter>', { desc = 'Open code in code.amazon.com' })
+vim.keymap.set('n', '<leader>hB', ':Gitsigns blame_line full=true<Enter>', { desc = 'Open up netrw' })
+vim.keymap.set({ 'n', 'v' }, '<leader>ao', ':GBrowse<Enter>', { desc = 'Open code in code.amazon.com' })
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
@@ -242,7 +243,7 @@ require('lazy').setup({
   --  This is equivalent to:
   --    require('Comment').setup({})
 
-  -- "gc" to comment visual regions/lines
+  -- "" to comment visual regions/lines
   { 'numToStr/Comment.nvim', opts = {} },
 
   -- Here is a more advanced example where we pass configuration
@@ -260,6 +261,7 @@ require('lazy').setup({
         topdelete = { text = '‾' },
         changedelete = { text = '~' },
       },
+      current_line_blame = true,
     },
   },
 
@@ -695,13 +697,15 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        markdown = { 'markdownlint' },
         java = { 'google-java-format' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
         -- You can use a sub-list to tell conform to run *until* a formatter
         -- is found.
-        -- javascript = { { "prettierd", "prettier" } },
+        javascript = { { 'prettierd', 'prettier' } },
+        typescript = { { 'prettierd', 'prettier' } },
       },
     },
   },
@@ -773,7 +777,7 @@ require('lazy').setup({
           -- Accept ([y]es) the completion.
           --  This will auto-import if your LSP supports it.
           --  This will expand snippets if the LSP sent a snippet.
-          ['<C-y>'] = cmp.mapping.confirm { select = true },
+          ['<C-h>'] = cmp.mapping.confirm { select = true },
 
           -- If you prefer more traditional completion keymaps,
           -- you can uncomment the following lines
@@ -793,13 +797,13 @@ require('lazy').setup({
           --  end
           --
           -- <c-l> will move you to the right of each of the expansion locations.
-          -- <c-h> is similar, except moving you backwards.
+          -- <c-y> is similar, except moving you backwards.
           ['<C-l>'] = cmp.mapping(function()
             if luasnip.expand_or_locally_jumpable() then
               luasnip.expand_or_jump()
             end
           end, { 'i', 's' }),
-          ['<C-h>'] = cmp.mapping(function()
+          ['<C-y>'] = cmp.mapping(function()
             if luasnip.locally_jumpable(-1) then
               luasnip.jump(-1)
             end
@@ -922,14 +926,18 @@ require('lazy').setup({
   -- require 'kickstart.plugins.lint',
   -- require 'kickstart.plugins.autopairs',
   -- require 'kickstart.plugins.neo-tree',
-  -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
+  require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
   --
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
   --    For additional information, see `:help lazy.nvim-lazy.nvim-structuring-your-plugins`
-  -- { import = 'custom.plugins' },
+  { import = 'custom.plugins' },
+  { 'tpope/vim-fugitive' },
+  { 'nvim-neotest/neotest' },
+  { 'theprimeagen/vim-be-good' },
+  { 'mfussenegger/nvim-jdtls' },
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
@@ -951,6 +959,21 @@ require('lazy').setup({
     },
   },
 })
+
+-- vim fugitive keybinds
+vim.keymap.set('n', '<leader>gs', ':Git<CR>', { noremap = true })
+vim.keymap.set('n', '<leader>gb', ':Git blame<CR>', { noremap = true })
+
+-- base vim keybind
+vim.keymap.set('n', 'ss', ':%s/')
+
+-- jtdls vim keybind
+vim.keymap.set('v', '<leader>jo', '<Cmd>lua require("jdtls").organize_imports()<CR>', { desc = '[O]rganize imports' })
+vim.keymap.set('v', '<leader>jv', '<Cmd>lua require("jdtls").extract_variable()<CR>', { desc = 'Extract [v]ariable' })
+vim.keymap.set('v', '<leader>jV', '<Esc><Cmd>lua require("jdtls").extract_variable(true)<CR>', { desc = 'Extract [V]ariable' })
+vim.keymap.set('v', '<leader>jc', '<Cmd>lua require("jdtls").extract_constant()<CR>', { desc = 'Extract [c]onstant' })
+vim.keymap.set('v', '<leader>jC', '<Esc><Cmd>lua require("jdtls").extract_constant(true)<CR>', { desc = 'Extract [C]onstant' })
+vim.keymap.set('v', '<leader>jm', '<Cmd>lua require("jdtls").extract_method(true)<CR>', { desc = 'Extract [M]ethod' })
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
