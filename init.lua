@@ -981,8 +981,5 @@ vim.keymap.set('v', '<leader>jc', '<Cmd>lua require("jdtls").extract_constant()<
 vim.keymap.set('v', '<leader>jC', '<Esc><Cmd>lua require("jdtls").extract_constant(true)<CR>', { desc = 'Extract [C]onstant' })
 vim.keymap.set('v', '<leader>jm', '<Cmd>lua require("jdtls").extract_method(true)<CR>', { desc = 'Extract [M]ethod' })
 
--- set lua shit
-lvim.builtin.treesitter.autotag.enable = true
-
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
