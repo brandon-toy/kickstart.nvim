@@ -879,7 +879,7 @@ require('lazy').setup({
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'vim', 'vimdoc' },
+      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'vim', 'vimdoc', 'typescript' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -934,6 +934,16 @@ require('lazy').setup({
   { 'nvim-neotest/neotest' },
   { 'theprimeagen/vim-be-good' },
   { 'mfussenegger/nvim-jdtls' },
+  {
+    'altermo/ultimate-autopair.nvim',
+    event = { 'InsertEnter', 'CmdlineEnter' },
+    branch = 'v0.6', --recommended as each new version will have breaking changes
+    opts = {
+      --Config goes here
+      --
+    },
+  },
+  { 'windwp/nvim-ts-autotag' },
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
@@ -970,6 +980,9 @@ vim.keymap.set('v', '<leader>jV', '<Esc><Cmd>lua require("jdtls").extract_variab
 vim.keymap.set('v', '<leader>jc', '<Cmd>lua require("jdtls").extract_constant()<CR>', { desc = 'Extract [c]onstant' })
 vim.keymap.set('v', '<leader>jC', '<Esc><Cmd>lua require("jdtls").extract_constant(true)<CR>', { desc = 'Extract [C]onstant' })
 vim.keymap.set('v', '<leader>jm', '<Cmd>lua require("jdtls").extract_method(true)<CR>', { desc = 'Extract [M]ethod' })
+
+-- set lua shit
+lvim.builtin.treesitter.autotag.enable = true
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
