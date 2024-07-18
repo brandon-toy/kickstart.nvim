@@ -623,6 +623,7 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
+        'jq',
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -700,6 +701,7 @@ require('lazy').setup({
         --
         -- You can use a sub-list to tell conform to run *until* a formatter
         -- is found.
+        json = { { 'jq', 'fixjson' } },
         javascript = { { 'prettierd', 'prettier' } },
         typescript = { { 'prettierd', 'prettier' } },
       },
@@ -879,7 +881,7 @@ require('lazy').setup({
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'vim', 'vimdoc', 'typescript' },
+      ensure_installed = { 'bash', 'java', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'vim', 'vimdoc', 'typescript', 'json' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -931,6 +933,7 @@ require('lazy').setup({
   --    For additional information, see `:help lazy.nvim-lazy.nvim-structuring-your-plugins`
   { import = 'custom.plugins' },
   { 'tpope/vim-fugitive' },
+  { 'tpope/vim-rhubarb' },
   { 'nvim-neotest/neotest' },
   { 'theprimeagen/vim-be-good' },
   { 'mfussenegger/nvim-jdtls' },
@@ -944,6 +947,42 @@ require('lazy').setup({
     },
   },
   { 'windwp/nvim-ts-autotag' },
+  { 'm4xshen/hardtime.nvim' },
+  {
+    url = 'ssh://git.amazon.com:2222/pkg/Vim-code-browse',
+    branch = 'mainline',
+    dependencies = 'tpope/vim-fugitive',
+    event = 'VeryLazy',
+  },
+  {
+    'nvim-neotest/neotest',
+    dependencies = {
+      'nvim-neotest/nvim-nio',
+      'nvim-lua/plenary.nvim',
+      'antoinemadec/FixCursorHold.nvim',
+      'nvim-treesitter/nvim-treesitter',
+    },
+  },
+  {
+    'nvim-neotest/neotest',
+    dependencies = {
+      'nvim-neotest/neotest-jest',
+    },
+    config = function()
+      require('neotest').setup {
+        adapters = {
+          require 'neotest-jest' {
+            jestCommand = 'npm test --',
+            jestConfigFile = 'custom.jest.config.ts',
+            env = { CI = true },
+            cwd = function(path)
+              return vim.fn.getcwd()
+            end,
+          },
+        },
+      }
+    end,
+  },
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
@@ -972,6 +1011,8 @@ vim.keymap.set('n', '<leader>gb', ':Git blame<CR>', { noremap = true })
 
 -- base vim keybind
 vim.keymap.set('n', 'ss', ':%s/')
+vim.keymap.set('n', '<C-j>', '<cmd>cnext<CR>', { desc = 'Move focus to the lower window' })
+vim.keymap.set('n', '<C-k>', '<cmd>cprev<CR>', { desc = 'Move focus to the upper window' })
 
 -- jtdls vim keybind
 vim.keymap.set('v', '<leader>jo', '<Cmd>lua require("jdtls").organize_imports()<CR>', { desc = '[O]rganize imports' })
@@ -980,6 +1021,9 @@ vim.keymap.set('v', '<leader>jV', '<Esc><Cmd>lua require("jdtls").extract_variab
 vim.keymap.set('v', '<leader>jc', '<Cmd>lua require("jdtls").extract_constant()<CR>', { desc = 'Extract [c]onstant' })
 vim.keymap.set('v', '<leader>jC', '<Esc><Cmd>lua require("jdtls").extract_constant(true)<CR>', { desc = 'Extract [C]onstant' })
 vim.keymap.set('v', '<leader>jm', '<Cmd>lua require("jdtls").extract_method(true)<CR>', { desc = 'Extract [M]ethod' })
+
+-- neotest vim keybind
+vim.keymap.set('v', '<leader>tf', 'require("neotest").run.run(vim.fn.expand("%"))', { desc = 'Run Test [F]ile' })
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
