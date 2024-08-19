@@ -726,14 +726,11 @@ require('lazy').setup({
         lua = { 'stylua' },
         markdown = { 'markdownlint' },
         java = { 'google-java-format' },
-        -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
-        --
-        -- You can use a sub-list to tell conform to run *until* a formatter
-        -- is found.
-        json = { { 'jq', 'fixjson' } },
-        javascript = { { 'prettierd', 'prettier' } },
-        typescript = { { 'prettierd', 'prettier' } },
+        json = { 'jq', 'fixjson' },
+        typescript = { 'prettierd', 'prettier' },
+        typescriptreact = { 'prettierd', 'prettier' },
+        javascript = { 'prettierd', 'prettier' },
+        javascriptreact = { 'prettierd', 'prettier' },
       },
     },
   },
@@ -967,6 +964,7 @@ require('lazy').setup({
   { 'nvim-neotest/neotest' },
   { 'theprimeagen/vim-be-good' },
   { 'mfussenegger/nvim-jdtls' },
+  { 'akinsho/toggleterm.nvim', version = '*', config = true },
   {
     'altermo/ultimate-autopair.nvim',
     event = { 'InsertEnter', 'CmdlineEnter' },
@@ -1021,6 +1019,16 @@ require('lazy').setup({
       require('render-markdown').setup {}
     end,
   },
+  {
+    'ThePrimeagen/harpoon',
+    branch = 'harpoon2',
+    dependencies = { 'nvim-lua/plenary.nvim' },
+  },
+  {
+    'pmizio/typescript-tools.nvim',
+    dependencies = { 'nvim-lua/plenary.nvim', 'neovim/nvim-lspconfig' },
+    opts = {},
+  },
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
@@ -1051,6 +1059,7 @@ vim.keymap.set('n', '<leader>gb', ':Git blame<CR>', { noremap = true })
 vim.keymap.set('n', 'ss', ':%s/')
 vim.keymap.set('n', '<C-j>', '<cmd>cnext<CR>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<cmd>cprev<CR>', { desc = 'Move focus to the upper window' })
+vim.keymap.set('n', '<leader>t', '<cmd>terminal<CR>', { desc = 'Open neovim terminal' })
 
 -- jtdls vim keybind
 vim.keymap.set('v', '<leader>jo', '<Cmd>lua require("jdtls").organize_imports()<CR>', { desc = '[O]rganize imports' })
@@ -1062,6 +1071,58 @@ vim.keymap.set('v', '<leader>jm', '<Cmd>lua require("jdtls").extract_method(true
 
 -- neotest vim keybind
 vim.keymap.set('v', '<leader>tf', 'require("neotest").run.run(vim.fn.expand("%"))', { desc = 'Run Test [F]ile' })
+
+-- toggle term
+function _G.set_terminal_keymaps()
+  local opts = { buffer = 0 }
+  vim.keymap.set('t', '<esc>', [[<C-\><C-n>]], opts)
+  vim.keymap.set('t', 'jk', [[<C-\><C-n>]], opts)
+  vim.keymap.set('t', '<C-h>', [[<Cmd>wincmd h<CR>]], opts)
+  vim.keymap.set('t', '<C-j>', [[<Cmd>wincmd j<CR>]], opts)
+  vim.keymap.set('t', '<C-k>', [[<Cmd>wincmd k<CR>]], opts)
+  vim.keymap.set('t', '<C-l>', [[<Cmd>wincmd l<CR>]], opts)
+  vim.keymap.set('t', '<C-w>', [[<C-\><C-n><C-w>]], opts)
+end
+
+-- if you only want these mappings for toggle term use term://*toggleterm#* instead
+vim.cmd 'autocmd! TermOpen term://* lua set_terminal_keymaps()'
+
+-- harpoon
+local harpoon = require 'harpoon'
+
+harpoon:setup()
+-- REQUIRED
+
+vim.keymap.set('n', '<leader>a', function()
+  harpoon:list():add()
+end)
+vim.keymap.set('n', '<C-e>', function()
+  harpoon.ui:toggle_quick_menu(harpoon:list())
+end)
+
+vim.keymap.set('n', '<C-j>', function()
+  harpoon:list():select(1)
+end)
+vim.keymap.set('n', '<C-k>', function()
+  harpoon:list():select(2)
+end)
+vim.keymap.set('n', '<C-l>', function()
+  harpoon:list():select(3)
+end)
+vim.keymap.set('n', '<C-;>', function()
+  harpoon:list():select(4)
+end)
+
+-- Toggle previous & next buffers stored within Harpoon list
+vim.keymap.set('n', '<C-n>', function()
+  harpoon:list():prev()
+end)
+vim.keymap.set('n', '<C-m>', function()
+  harpoon:list():next()
+end)
+
+-- Typescript tools
+vim.keymap.set('n', '<leader>to', '<Cmd>TSToolsOrganizeImports<CR>')
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
