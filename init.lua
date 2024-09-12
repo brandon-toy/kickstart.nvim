@@ -191,7 +191,6 @@ vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left wind
 vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
-vim.keymap.set('n', '<leader>pv', ':Explore<Enter>', { desc = 'Open up netrw' })
 vim.keymap.set('n', '<leader>hB', ':Gitsigns blame_line full=true<Enter>', { desc = 'Open up netrw' })
 vim.keymap.set({ 'n', 'v' }, '<leader>ao', ':GBrowse<Enter>', { desc = 'Open code in code.amazon.com' })
 
@@ -395,7 +394,13 @@ require('lazy').setup({
       local builtin = require 'telescope.builtin'
       vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
       vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
-      vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
+      vim.keymap.set('n', '<leader>sf', function()
+        -- You can pass additional configuration to Telescope to change the theme, layout, etc.
+        builtin.find_files {
+          winblend = 10,
+          previewer = false,
+        }
+      end, { desc = '[S]earch [F]iles' })
       vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
       vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
       vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
@@ -574,7 +579,13 @@ require('lazy').setup({
       --  When you add nvim-cmp, luasnip, etc. Neovim now has *more* capabilities.
       --  So, we create new capabilities with nvim cmp, and then broadcast that to the servers.
       local capabilities = vim.lsp.protocol.make_client_capabilities()
-      capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
+      capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities(), {
+        workspace = {
+          didChangeWatchedFiles = {
+            dynamicRegistration = false,
+          },
+        },
+      })
 
       -- Enable the following language servers
       --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
@@ -595,9 +606,7 @@ require('lazy').setup({
         -- Some languages (like typescript) have entire language plugins that can be useful:
         --    https://github.com/pmizio/typescript-tools.nvim
         --
-        -- But for many setups, the LSP (`tsserver`) will work just fine
-        tsserver = {},
-        --
+        eslint_d = {},
 
         lua_ls = {
           -- cmd = {...},
@@ -629,6 +638,8 @@ require('lazy').setup({
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
         'jq',
+        'eslint_d',
+        'ts_ls',
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -1010,6 +1021,72 @@ require('lazy').setup({
         },
       }
     end,
+    keys = {
+      { '<leader>t', '', desc = '+test' },
+      {
+        '<leader>tt',
+        function()
+          require('neotest').run.run(vim.fn.expand '%')
+        end,
+        desc = 'Run File',
+      },
+      {
+        '<leader>tT',
+        function()
+          require('neotest').run.run(vim.uv.cwd())
+        end,
+        desc = 'Run All Test Files',
+      },
+      {
+        '<leader>tr',
+        function()
+          require('neotest').run.run()
+        end,
+        desc = 'Run Nearest',
+      },
+      {
+        '<leader>tl',
+        function()
+          require('neotest').run.run_last()
+        end,
+        desc = 'Run Last',
+      },
+      {
+        '<leader>ts',
+        function()
+          require('neotest').summary.toggle()
+        end,
+        desc = 'Toggle Summary',
+      },
+      {
+        '<leader>to',
+        function()
+          require('neotest').output.open { enter = true, auto_close = true }
+        end,
+        desc = 'Show Output',
+      },
+      {
+        '<leader>tO',
+        function()
+          require('neotest').output_panel.toggle()
+        end,
+        desc = 'Toggle Output Panel',
+      },
+      {
+        '<leader>tS',
+        function()
+          require('neotest').run.stop()
+        end,
+        desc = 'Stop',
+      },
+      {
+        '<leader>tw',
+        function()
+          require('neotest').watch.toggle(vim.fn.expand '%')
+        end,
+        desc = 'Toggle Watch',
+      },
+    },
   },
   {
     'MeanderingProgrammer/markdown.nvim',
@@ -1028,6 +1105,87 @@ require('lazy').setup({
     'pmizio/typescript-tools.nvim',
     dependencies = { 'nvim-lua/plenary.nvim', 'neovim/nvim-lspconfig' },
     opts = {},
+  },
+  { 'github/copilot.vim' },
+  {
+    'otavioschwanck/arrow.nvim',
+    opts = {
+      show_icons = true,
+      leader_key = ',', -- Recommended to be a single key
+      buffer_leader_key = 'm', -- Per Buffer Mappings
+    },
+  },
+  {
+    'stevearc/oil.nvim',
+    view_options = {
+      show_hidden = true,
+      is_hidden_file = function(name, bufnr)
+        return vim.startswith(name, '.')
+      end,
+      -- This function defines what will never be shown, even when `show_hidden` is set
+      is_always_hidden = function(name, bufnr)
+        return false
+      end,
+    },
+    skip_confirm_for_simple_edits = true,
+    opts = {},
+    dependencies = { { 'echasnovski/mini.icons', opts = {} } },
+  },
+  {
+    'mistricky/codesnap.nvim',
+    build = 'make build_generator',
+    keys = {
+      { '<leader>cc', '<cmd>CodeSnap<cr>', mode = 'x', desc = 'Save selected code snapshot into clipboard' },
+      { '<leader>cs', '<cmd>CodeSnapSave<cr>', mode = 'x', desc = 'Save selected code snapshot in ~/Pictures' },
+    },
+    opts = {
+      save_path = '~/Pictures',
+      has_breadcrumbs = true,
+      bg_theme = 'bamboo',
+    },
+  },
+  {
+    'rbong/vim-flog',
+    lazy = true,
+    cmd = { 'Flog', 'Flogsplit', 'Floggit' },
+    dependencies = {
+      'tpope/vim-fugitive',
+    },
+  },
+  {
+    'gbprod/yanky.nvim',
+    dependencies = {
+      { 'kkharji/sqlite.lua' },
+    },
+    opts = {
+      ring = { storage = 'sqlite' },
+    },
+    keys = {
+      {
+        '<leader>p',
+        function()
+          require('telescope').extensions.yank_history.yank_history {}
+        end,
+        desc = 'Open Yank History',
+      },
+      { 'y', '<Plug>(YankyYank)', mode = { 'n', 'x' }, desc = 'Yank text' },
+      { 'p', '<Plug>(YankyPutAfter)', mode = { 'n', 'x' }, desc = 'Put yanked text after cursor' },
+      { 'P', '<Plug>(YankyPutBefore)', mode = { 'n', 'x' }, desc = 'Put yanked text before cursor' },
+      { 'gp', '<Plug>(YankyGPutAfter)', mode = { 'n', 'x' }, desc = 'Put yanked text after selection' },
+      { 'gP', '<Plug>(YankyGPutBefore)', mode = { 'n', 'x' }, desc = 'Put yanked text before selection' },
+      { '<c-p>', '<Plug>(YankyPreviousEntry)', desc = 'Select previous entry through yank history' },
+      { '<c-n>', '<Plug>(YankyNextEntry)', desc = 'Select next entry through yank history' },
+      { ']p', '<Plug>(YankyPutIndentAfterLinewise)', desc = 'Put indented after cursor (linewise)' },
+      { '[p', '<Plug>(YankyPutIndentBeforeLinewise)', desc = 'Put indented before cursor (linewise)' },
+      { ']P', '<Plug>(YankyPutIndentAfterLinewise)', desc = 'Put indented after cursor (linewise)' },
+      { '[P', '<Plug>(YankyPutIndentBeforeLinewise)', desc = 'Put indented before cursor (linewise)' },
+      { '>p', '<Plug>(YankyPutIndentAfterShiftRight)', desc = 'Put and indent right' },
+      { '<p', '<Plug>(YankyPutIndentAfterShiftLeft)', desc = 'Put and indent left' },
+      { '>P', '<Plug>(YankyPutIndentBeforeShiftRight)', desc = 'Put before and indent right' },
+      { '<P', '<Plug>(YankyPutIndentBeforeShiftLeft)', desc = 'Put before and indent left' },
+      { '=p', '<Plug>(YankyPutAfterFilter)', desc = 'Put after applying a filter' },
+      { '=P', '<Plug>(YankyPutBeforeFilter)', desc = 'Put before applying a filter' },
+    },
   },
 }, {
   ui = {
@@ -1059,7 +1217,7 @@ vim.keymap.set('n', '<leader>gb', ':Git blame<CR>', { noremap = true })
 vim.keymap.set('n', 'ss', ':%s/')
 vim.keymap.set('n', '<C-j>', '<cmd>cnext<CR>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<cmd>cprev<CR>', { desc = 'Move focus to the upper window' })
-vim.keymap.set('n', '<leader>t', '<cmd>terminal<CR>', { desc = 'Open neovim terminal' })
+vim.keymap.set('n', '<leader>nt', '<cmd>terminal<CR>', { desc = 'Open neovim terminal' })
 
 -- jtdls vim keybind
 vim.keymap.set('v', '<leader>jo', '<Cmd>lua require("jdtls").organize_imports()<CR>', { desc = '[O]rganize imports' })
@@ -1070,7 +1228,7 @@ vim.keymap.set('v', '<leader>jC', '<Esc><Cmd>lua require("jdtls").extract_consta
 vim.keymap.set('v', '<leader>jm', '<Cmd>lua require("jdtls").extract_method(true)<CR>', { desc = 'Extract [M]ethod' })
 
 -- neotest vim keybind
-vim.keymap.set('v', '<leader>tf', 'require("neotest").run.run(vim.fn.expand("%"))', { desc = 'Run Test [F]ile' })
+vim.keymap.set('n', '<leader>tf', '<Cmd>lua require("neotest").run.run(vim.fn.expand("%"))<CR>', { desc = 'Run Test [F]ile' })
 
 -- toggle term
 function _G.set_terminal_keymaps()
@@ -1093,7 +1251,7 @@ local harpoon = require 'harpoon'
 harpoon:setup()
 -- REQUIRED
 
-vim.keymap.set('n', '<leader>a', function()
+vim.keymap.set('n', '<leader>ad', function()
   harpoon:list():add()
 end)
 vim.keymap.set('n', '<C-e>', function()
@@ -1122,7 +1280,22 @@ vim.keymap.set('n', '<C-m>', function()
 end)
 
 -- Typescript tools
-vim.keymap.set('n', '<leader>to', '<Cmd>TSToolsOrganizeImports<CR>')
+vim.keymap.set('n', '<leader>o', '<Cmd>TSToolsOrganizeImports<CR><Cmd>TSToolsAddMissingImports<CR>', { desc = 'Organize imports' })
+
+-- oil
+vim.keymap.set('n', '<leader>pv', '<Cmd>Oil<CR>', { desc = 'Run oil' })
+
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'oil_preview',
+  callback = function(params)
+    vim.keymap.set('n', 'y', 'o', { buffer = params.buf, remap = true, nowait = true })
+  end,
+})
+
+-- eslint
+vim.keymap.set('n', '<leader>l', '<Cmd>EslintFixAll<CR>', { desc = 'Eslint Fix All' })
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
+--
+--
