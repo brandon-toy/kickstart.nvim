@@ -524,7 +524,9 @@ require('lazy').setup({
         -- Some languages (like typescript) have entire language plugins that can be useful:
         --    https://github.com/pmizio/typescript-tools.nvim
         --
+        pyright = {},
         eslint_d = {},
+        eslint = {},
 
         lua_ls = {
           -- cmd = {...},
@@ -619,22 +621,23 @@ require('lazy').setup({
       format_on_save = true,
       formatters_by_ft = {
         lua = { 'stylua' },
+        bash = { 'beautysh' },
         markdown = { 'markdownlint' },
         css = { 'prettierd' },
-        typescript = { 'eslint_d', 'prettierd' },
+        typescript = { 'prettierd', 'prettier', 'eslint' },
         typescriptreact = { 'prettierd', 'prettier' },
         javascript = { 'prettierd', 'prettier' },
         javascriptreact = { 'prettierd', 'prettier' },
         python = { 'black' },
-        jedi_language_server = { 'black' },
       },
     },
   },
 
   { -- Autocompletion
-    'hrsh7th/nvim-cmp',
+    'Saghen/blink.cmp',
     event = 'InsertEnter',
     dependencies = {
+      { 'echasnovski/mini.icons' },
       -- Snippet Engine & its associated nvim-cmp source
       {
         'L3MON4D3/LuaSnip',
@@ -672,8 +675,33 @@ require('lazy').setup({
             luasnip.lsp_expand(args.body)
           end,
         },
-        completion = { completeopt = 'menu,menuone,noinsert' },
 
+        completion = {
+          menu = {
+            draw = {
+              components = {
+                kind_icon = {
+                  text = function(ctx)
+                    local kind_icon, _, _ = require('mini.icons').get('lsp', ctx.kind)
+                    return kind_icon
+                  end,
+                  -- (optional) use highlights from mini.icons
+                  highlight = function(ctx)
+                    local _, hl, _ = require('mini.icons').get('lsp', ctx.kind)
+                    return hl
+                  end,
+                },
+                kind = {
+                  -- (optional) use highlights from mini.icons
+                  highlight = function(ctx)
+                    local _, hl, _ = require('mini.icons').get('lsp', ctx.kind)
+                    return hl
+                  end,
+                },
+              },
+            },
+          },
+        },
         -- For an understanding of why these mappings were
         -- chosen, you will need to read `:help ins-completion`
         --
@@ -800,9 +828,26 @@ require('lazy').setup({
   {
     'pmizio/typescript-tools.nvim',
     dependencies = { 'nvim-lua/plenary.nvim', 'neovim/nvim-lspconfig' },
-    opts = {},
+    opts = {
+      settings = {
+        -- Match your tsconfig.json settings
+        tsserver_file_preferences = {
+          target = 'ES2020',
+          module = 'ESNext',
+          moduleResolution = 'bundler',
+          jsx = 'react-jsx',
+          isolatedModules = true,
+        },
+        -- Explicitly set the JSX settings
+        typescript = {
+          jsx = 'react-jsx',
+          jsxImportSource = 'react',
+        },
+      },
+      -- Force typescript-tools to use your tsconfig.json
+      tsconfig_path = 'tsconfig.json',
+    },
   },
-
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
@@ -1014,15 +1059,6 @@ require('lazy').setup({
     },
   },
   {
-    'stevearc/oil.nvim',
-    ---@module 'oil'
-    ---@type oil.SetupOpts
-    opts = {},
-    -- Optional dependencies
-    dependencies = { { 'echasnovski/mini.icons', opts = {} } },
-    -- dependencies = { "nvim-tree/nvim-web-devicons" }, -- use if prefer nvim-web-devicons
-  },
-  {
     'yetone/avante.nvim',
     event = 'VeryLazy',
     version = false, -- Never set this value to "*"! Never!
@@ -1032,8 +1068,14 @@ require('lazy').setup({
       provider = 'bedrock',
       providers = {
         bedrock = {
-          model = 'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
+          model = 'us.anthropic.claude-3-7-sonnet-20250219-v1:0',
           aws_region = 'us-east-1',
+          aws = {
+            endpoint = 'https://bedrock-runtime.us-east-1.amazonaws.com',
+            credentials = {
+              profile = 'default', -- or your specific AWS profile name
+            },
+          },
         },
       },
     },
@@ -1118,6 +1160,33 @@ require('lazy').setup({
   {
     'davidosomething/format-ts-errors.nvim',
   },
+
+  {
+    'monkoose/neocodeium',
+    event = 'VeryLazy',
+    config = function()
+      local neocodeium = require 'neocodeium'
+      neocodeium.setup {
+        -- Disable neocodeium for markdown files
+        disabled_filetypes = { 'markdown', 'md', 'mdx' },
+        -- Additional configuration to ensure it's disabled
+        filetypes = {
+          markdown = false,
+          md = false,
+          mdx = false,
+        },
+      }
+      vim.keymap.set('i', '<C-f>', neocodeium.accept)
+
+      -- Additional autocmd to ensure neocodeium is disabled for markdown
+      vim.api.nvim_create_autocmd('FileType', {
+        pattern = { 'markdown', 'md', 'mdx' },
+        callback = function()
+          vim.b.neocodeium_disabled = true
+        end,
+      })
+    end,
+  },  
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
@@ -1199,6 +1268,7 @@ vim.api.nvim_create_autocmd('FileType', {
 
 -- eslint
 vim.keymap.set('n', '<leader>l', '<Cmd>EslintFixAll<CR>', { desc = 'Eslint Fix All' })
+vim.keymap.set('i', '<C-d>', vim.lsp.buf.signature_help) -- Change to Ctrl+H
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
@@ -1218,3 +1288,62 @@ vim.api.nvim_create_autocmd('FileType', {
 vim.api.nvim_set_keymap('n', '<leader>cp', ':let @+ = expand("%:p")<CR>', { noremap = true, silent = true })
 
 vim.api.nvim_set_keymap('i', '<C-k>', '<Cmd>lua vim.lsp.buf.signature_help()<CR>', { noremap = true, silent = true })
+
+require('lspconfig').pyright.setup {
+  -- Your Pyright specific settings can go here
+  -- For example, to enable/disable specific features or set up extraPaths
+  settings = {
+    python = {
+      analysis = {
+        typeCheckingMode = 'basic', -- or "strict"
+        autoImportCompletions = true,
+      },
+    },
+  },
+}
+
+-- neocodeium keymaps with filetype checking
+
+local function is_neocodeium_disabled()
+  local ft = vim.bo.filetype
+  return ft == 'markdown' or ft == 'md' or ft == 'mdx' or vim.b.neocodeium_disabled
+end
+
+vim.keymap.set('i', '<A-f>', function()
+  if not is_neocodeium_disabled() then
+    require('neocodeium').accept()
+  end
+end)
+vim.keymap.set('i', '<A-w>', function()
+  if not is_neocodeium_disabled() then
+    require('neocodeium').accept_word()
+  end
+end)
+vim.keymap.set('i', '<A-a>', function()
+  if not is_neocodeium_disabled() then
+    require('neocodeium').accept_line()
+  end
+end)
+vim.keymap.set('i', '<A-e>', function()
+  if not is_neocodeium_disabled() then
+    require('neocodeium').cycle_or_complete()
+  end
+end)
+vim.keymap.set('i', '<A-r>', function()
+  if not is_neocodeium_disabled() then
+    require('neocodeium').cycle_or_complete(-1)
+  end
+end)
+vim.keymap.set('i', '<A-c>', function()
+  if not is_neocodeium_disabled() then
+    require('neocodeium').clear()
+  end
+end)
+
+-- Command to manually toggle neocodeium for current buffer
+vim.api.nvim_create_user_command('NeocodeiumToggle', function()
+  vim.b.neocodeium_disabled = not vim.b.neocodeium_disabled
+  local status = vim.b.neocodeium_disabled and 'disabled' or 'enabled'
+  print('Neocodeium ' .. status .. ' for this buffer')
+end, { desc = 'Toggle neocodeium for current buffer' })
+
